@@ -2,29 +2,34 @@ package com.haozhang.sliding;
 
 import android.content.Context;
 import android.content.res.Resources;
+import android.support.v4.view.NestedScrollingParent;
+import android.support.v4.view.NestedScrollingParentHelper;
+import android.support.v4.view.ViewCompat;
 import android.support.v7.widget.RecyclerView;
 import android.util.AttributeSet;
 import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.animation.DecelerateInterpolator;
+import android.widget.AbsListView;
 import android.widget.AdapterView;
 import android.widget.FrameLayout;
 import android.widget.ScrollView;
 import android.widget.Scroller;
 
+
 /**
  * @author HaoZhang
  * @date 2017/2/23.
  */
-public class SlidingLayout extends FrameLayout {
+public class SlidingLayout extends FrameLayout implements NestedScrollingParent {
     private static final String TAG = "SlidingLayout";
 
     private static final int DEFAULT_SLIDING_MIN_DISTANCE = 10;
     private static final float DEFAULT_DECAY_VALUE = 0.5f;
     private int mSlidingMaxDistance;
     private Scroller mScroller;
-
+    private NestedScrollingParentHelper mNestedParentHelper;
     private float mLastY;
 
     public SlidingLayout(Context context) {
@@ -42,7 +47,54 @@ public class SlidingLayout extends FrameLayout {
         init(context);
     }
 
+    /**
+     * @param child
+     * @param target
+     * @param nestedScrollAxes target view 滑动方向 {@link ViewCompat#SCROLL_AXIS_HORIZONTAL} or {@link ViewCompat#SCROLL_AXIS_VERTICAL}
+     * @return
+     */
+    public boolean onStartNestedScroll(View child, View target, int nestedScrollAxes) {
+        // 这里我们只需要处理VERTICAL
+        if (nestedScrollAxes == ViewCompat.SCROLL_AXIS_VERTICAL) {
+            return true;
+        }
+        return false;
+    }
+
+    @Override
+    public void onNestedScrollAccepted(View child, View target, int nestedScrollAxes) {
+        mNestedParentHelper.onNestedScrollAccepted(child, target, nestedScrollAxes);
+    }
+
+    @Override
+    public void onStopNestedScroll(View target) {
+        mNestedParentHelper.onStopNestedScroll(target);
+    }
+
+    public void onNestedPreScroll(View target, int dx, int dy, int[] consumed) {
+        consumed[1] = dy;
+        Log.d(TAG, "onNestedPreScroll() called with: target = [" + target + "], dx = [" + dx + "], dy = [" + dy + "], consumed = [" + consumed + "]");
+    }
+
+    @Override
+    public void onNestedScroll(View target, int dxConsumed, int dyConsumed, int dxUnconsumed, int dyUnconsumed) {
+        Log.d(TAG, "onNestedScroll() called with: target = [" + target + "], dxConsumed = [" + dxConsumed + "], dyConsumed = [" + dyConsumed + "], dxUnconsumed = [" + dxUnconsumed + "], dyUnconsumed = [" + dyUnconsumed + "]");
+    }
+
+    public boolean onNestedFling(View target, float velocityX, float velocityY, boolean consumed) {
+        return false;
+    }
+
+    public boolean onNestedPreFling(View target, float velocityX, float velocityY) {
+        return false;
+    }
+
+    public int getNestedScrollAxes() {
+        return mNestedParentHelper.getNestedScrollAxes();
+    }
+
     void init(Context context) {
+        mNestedParentHelper = new NestedScrollingParentHelper(this);
         Resources resources = context.getResources();
         mSlidingMaxDistance = resources.getDimensionPixelSize(R.dimen.sliding_max_distance);
         mScroller = new Scroller(context, new DecelerateInterpolator(), true);
@@ -53,22 +105,9 @@ public class SlidingLayout extends FrameLayout {
         super.onFinishInflate();
     }
 
-    @Override
-    public boolean onTouchEvent(MotionEvent event) {
-        float y = event.getY();
-        switch (event.getAction()) {
-            case MotionEvent.ACTION_MOVE:
-                float dy = mLastY - y;
-                smoothScrollBy(0, (int) dy);
-                break;
-            case MotionEvent.ACTION_UP:
-            case MotionEvent.ACTION_CANCEL:
-                smoothScrollTo(0, 0);
-                break;
-        }
-        mLastY = y;
-        return true;
-    }
+    int mLastScrollY;
+    boolean test;
+
 
     private void smoothScrollTo(int fx, int fy) {
         int dx = fx - mScroller.getFinalX();
@@ -87,25 +126,92 @@ public class SlidingLayout extends FrameLayout {
         invalidate();
     }
 
+    boolean isPullDown = true;
+    boolean isScrolling = false;
+
+
+    public boolean canChildScrollUp() {
+        View view = getChildAt(0);
+        if (android.os.Build.VERSION.SDK_INT < 14) {
+            if (view instanceof AbsListView) {
+                final AbsListView absListView = (AbsListView) view;
+                return absListView.getChildCount() > 0
+                        && (absListView.getFirstVisiblePosition() > 0 || absListView.getChildAt(0).getTop() < absListView.getPaddingTop());
+            } else {
+                return ViewCompat.canScrollVertically(view, -1) || view.getScrollY() > 0;
+            }
+        } else {
+            return ViewCompat.canScrollVertically(view, -1);
+        }
+    }
+
+    boolean isReset;
+    private float mInitialMotionY;
+    private float mInitialDownY;
+
+    @Override
+    public boolean onTouchEvent(MotionEvent event) {
+        switch (event.getAction()) {
+            case MotionEvent.ACTION_DOWN:
+                return false;
+            case MotionEvent.ACTION_MOVE:
+                float y = event.getY();
+                Log.d(TAG, "current y :" + y + ", initialDownY :" + mInitialDownY + ", state :" + state);
+                if (((state == 1) && (y - mInitialDownY <= 0)) || (state == 2) && (y - mInitialDownY >= 0)) {
+
+                    // fuck code , just stupid , should use nested
+                    // 模拟down事件
+                    MotionEvent down = event;
+                    down.setAction(MotionEvent.ACTION_UP);
+                    dispatchTouchEvent(down);
+                    down.setAction(MotionEvent.ACTION_DOWN);
+                    dispatchTouchEvent(down);
+                    return false;
+                }
+                float dy = mLastY - y;
+                smoothScrollBy(0, (int) dy);
+                mLastScrollY = getScrollY();
+                test = true;
+                break;
+            case MotionEvent.ACTION_UP:
+            case MotionEvent.ACTION_CANCEL:
+                test = false;
+                smoothScrollTo(0, 0);
+                break;
+        }
+        mLastY = event.getY();
+        return true;
+    }
+
+    int state = 0;
+
     @Override
     public boolean onInterceptTouchEvent(MotionEvent event) {
-        Log.d(TAG, "onInterceptTouchEvent() called with: event = [" + event + "]");
+        int scrollY = getScrollY();
+        Log.d(TAG, "scrollY :" + scrollY + ", test :" + test);
+        Log.d(TAG, "onInterceptTouchEvent() called with: event = [" + event + "]" + ", scrollY :" + scrollY);
+//        if (test && scrollY >= 0) {
+//            return false;
+//        }
         boolean intercept = false;
         // 记录此次触摸事件的y坐标
         float y = event.getY();
         switch (event.getAction()) {
             case MotionEvent.ACTION_DOWN: {
+                state = 0;
+                mInitialDownY = y;
                 mLastY = y;
                 intercept = false;
                 break;
             }
             case MotionEvent.ACTION_MOVE: {
-                event.getRawY();
                 View child = getChildAt(0);
-                if (y > mLastY) {
+                if (y >= mLastY) {
+                    state = 1;
                     // 下滑操作
                     intercept = interceptPullDown(child);
                 } else {
+                    state = 2;
                     // 上滑动
                     intercept = interceptPullUp(child);
                 }
@@ -114,9 +220,11 @@ public class SlidingLayout extends FrameLayout {
             // Up事件
             case MotionEvent.ACTION_CANCEL:
             case MotionEvent.ACTION_UP:
+                test = false;
                 intercept = false;
                 break;
         }
+        Log.d(TAG, "onInterceptTouchEvent return :" + intercept);
         return intercept;
     }
 
@@ -129,6 +237,7 @@ public class SlidingLayout extends FrameLayout {
         } else if (child instanceof RecyclerView) {
             intercept = interceptPullDownRecyclerView(child);
         }
+        Log.d(TAG, "interceptPullDown :" + intercept);
         return intercept;
     }
 
@@ -141,6 +250,7 @@ public class SlidingLayout extends FrameLayout {
         } else if (child instanceof RecyclerView) {
             intercept = interceptPullUpRecyclerView(child);
         }
+        Log.d(TAG, "interceptPullUp :" + intercept);
         return intercept;
     }
 
@@ -208,11 +318,6 @@ public class SlidingLayout extends FrameLayout {
         return intercept;
     }
 
-
-    @Override
-    public boolean dispatchTouchEvent(MotionEvent event) {
-        return super.dispatchTouchEvent(event);
-    }
 
     @Override
     protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
