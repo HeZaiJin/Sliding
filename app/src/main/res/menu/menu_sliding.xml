@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item
+        android:id="@+id/sliding_scrollView"
+        android:title="ScrollView"></item>
+    <item
+        android:id="@+id/sliding_listView"
+        android:title="ListView"></item>
+    <item
+        android:id="@+id/sliding_normalView"
+        android:title="NormalView"></item>
+    <item
+        android:id="@+id/sliding_recyclerView"
+        android:title="Recyclerview"></item>
+</menu>

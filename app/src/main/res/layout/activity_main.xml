@@ -16,17 +16,19 @@
             android:orientation="vertical">
 
             <Button
+                android:id="@+id/sliding"
                 android:layout_width="match_parent"
                 android:layout_height="100dp"
                 android:gravity="center"
-                android:text="Text 1"
+                android:text="SlidingLayout"
                 android:textSize="24sp" />
 
             <Button
+                android:id="@+id/sliding_nested"
                 android:layout_width="match_parent"
                 android:layout_height="100dp"
                 android:gravity="center"
-                android:text="Text 2"
+                android:text="SlidingNestedLayout"
                 android:textSize="24sp" />
 
             <Button

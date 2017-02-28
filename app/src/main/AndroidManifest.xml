@@ -15,6 +15,14 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+        <activity
+            android:name=".SlidingNestedActivity"
+            android:label="@string/title_activity_sliding_nested"
+            android:theme="@style/AppTheme.NoActionBar" />
+        <activity
+            android:name=".SlidingActivity"
+            android:label="@string/title_activity_sliding"
+            android:theme="@style/AppTheme.NoActionBar"></activity>
     </application>
 
 </manifest>

@@ -1,3 +1,23 @@
 <resources>
     <string name="app_name">Sliding</string>
+    <string name="title_activity_sliding_nested">SlidingNestedActivity</string>
+    <string name="title_activity_sliding">SlidingActivity</string>
+    <string-array name="list_value">
+        <item>Text 1</item>
+        <item>Text 2</item>
+        <item>Text 3</item>
+        <item>Text 4</item>
+        <item>Text 5</item>
+        <item>Text 6</item>
+        <item>Text 7</item>
+        <item>Text 8</item>
+        <item>Text 9</item>
+        <item>Text10</item>
+        <item>Text10</item>
+        <item>Text11</item>
+        <item>Text12</item>
+        <item>Text13</item>
+        <item>Text14</item>
+        <item>Text15</item>
+    </string-array>
 </resources>
