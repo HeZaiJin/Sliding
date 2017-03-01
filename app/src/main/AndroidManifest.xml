@@ -22,7 +22,8 @@
         <activity
             android:name=".SlidingActivity"
             android:label="@string/title_activity_sliding"
-            android:theme="@style/AppTheme.NoActionBar"></activity>
+            android:theme="@style/AppTheme.NoActionBar"
+            ></activity>
     </application>
 
 </manifest>

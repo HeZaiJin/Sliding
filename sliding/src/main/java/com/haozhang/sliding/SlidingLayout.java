@@ -7,6 +7,7 @@ import android.util.AttributeSet;
 import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
+import android.view.ViewConfiguration;
 import android.view.animation.DecelerateInterpolator;
 import android.widget.AdapterView;
 import android.widget.FrameLayout;
@@ -15,7 +16,6 @@ import android.widget.Scroller;
 
 
 /**
- *
  * @author HaoZhang
  */
 public class SlidingLayout extends FrameLayout {
@@ -126,6 +126,9 @@ public class SlidingLayout extends FrameLayout {
                 break;
             }
             case MotionEvent.ACTION_MOVE: {
+                if (Math.abs( y - mInitialDownY) < ViewConfiguration.getTouchSlop()){
+                    return false;
+                }
                 View child = getChildAt(0);
                 if (y >= mLastY) {
                     mSlidingState = 1;
