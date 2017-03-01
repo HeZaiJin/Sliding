@@ -16,6 +16,7 @@ import android.widget.Scroller;
 
 
 /**
+ * 支持上下阻力滑动回弹的ViewGroup
  * @author HaoZhang
  */
 public class SlidingLayout extends FrameLayout {
