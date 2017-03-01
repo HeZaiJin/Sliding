@@ -40,7 +40,6 @@ public class SlidingNestedActivity extends AppCompatActivity {
             super(itemView);
             tv = (TextView) itemView.findViewById(android.R.id.text1);
             tv.setTextColor(Color.BLACK);
-            tv.setBackgroundColor(Color.BLUE);
         }
     }
 
@@ -49,6 +48,7 @@ public class SlidingNestedActivity extends AppCompatActivity {
         @Override
         public SlidingActivity.Holder onCreateViewHolder(ViewGroup parent, int viewType) {
             View view = LayoutInflater.from(getApplicationContext()).inflate(android.R.layout.simple_list_item_1, null);
+            view.setBackgroundColor(Color.BLUE);
             return new SlidingActivity.Holder(view);
         }
 

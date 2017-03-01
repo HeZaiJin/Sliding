@@ -81,21 +81,20 @@ public class SlidingNestedLayout extends FrameLayout implements NestedScrollingP
     @Override
     public void onNestedPreScroll(View target, int dx, int dy, int[] consumed) {
         // 如果child不能滑动,parent消耗
+        Log.d(TAG, "onNestedPreScroll() called with:, dx = [" + dx + "], dy = [" + dy + "], mNestedScroll :" + mNestedScroll + ",mTotalConsume :" + mTotalConsume);
         if (mNestedScroll) {
-            Log.d(TAG, "onNestedPreScroll() called with:, dx = [" + dx + "], dy = [" + dy);
             int offset = (int) (-dy * DRAG_RATE);
             mTotalConsume += offset;
             mTarget.offsetTopAndBottom(offset);
             consumed[1] = dy;
         }
-        Log.d(TAG, "mTotalConsume :" + mTotalConsume);
         if (mTotalConsume != 0) {
             int offset = (int) (-dy * DRAG_RATE);
             int tmp = mTotalConsume;
             mTotalConsume += offset;
             if ((tmp - mTotalConsume) > (tmp + mTotalConsume)) {
                 mTarget.offsetTopAndBottom(tmp);
-                consumed[1] = tmp + mTotalConsume;
+                consumed[1] = -(tmp + mTotalConsume);
                 mTotalConsume = 0;
             } else {
                 mTarget.offsetTopAndBottom(offset);
