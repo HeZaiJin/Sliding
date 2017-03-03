@@ -1,31 +1,23 @@
 package com.haozhang.sliding;
 
 import android.content.Context;
-import android.content.res.Resources;
 import android.support.v4.view.NestedScrollingParent;
 import android.support.v4.view.NestedScrollingParentHelper;
 import android.support.v4.view.ViewCompat;
 import android.support.v7.widget.RecyclerView;
 import android.util.AttributeSet;
 import android.util.Log;
-import android.view.MotionEvent;
 import android.view.View;
-import android.view.animation.DecelerateInterpolator;
-import android.widget.AbsListView;
 import android.widget.AdapterView;
 import android.widget.FrameLayout;
 import android.widget.ScrollView;
-import android.widget.Scroller;
 
 public class SlidingNestedLayout extends FrameLayout implements NestedScrollingParent {
     private static final String TAG = "SlidingNestedLayout";
 
-    private static final float DRAG_RATE = .2f;
-    protected Scroller mScroller;
     private NestedScrollingParentHelper mNestedScrollingParentHelper;
-
-    protected int mInitialDownY;
-
+    int mTotalConsume;
+    View mTarget;
 
     public SlidingNestedLayout(Context context) {
         super(context);
@@ -42,9 +34,7 @@ public class SlidingNestedLayout extends FrameLayout implements NestedScrollingP
         init(context);
     }
 
-    void init(Context context) {
-        Resources resources = context.getResources();
-        mScroller = new Scroller(context, new DecelerateInterpolator(), true);
+    private void init(Context context) {
         mNestedScrollingParentHelper = new NestedScrollingParentHelper(this);
     }
 
@@ -80,19 +70,27 @@ public class SlidingNestedLayout extends FrameLayout implements NestedScrollingP
      */
     @Override
     public void onNestedPreScroll(View target, int dx, int dy, int[] consumed) {
-        Log.d(TAG, "onNestedPreScroll() called with: dx = [" + dx + "], dy = [" + dy);
+        Log.d(TAG, "onNestedPreScroll() , dx = [" + dx + "], dy = [" + dy + "]");
+
         dy = -dy;
+
         if (dy > 0) {
             if (mTotalConsume < 0) {
-                Log.d(TAG, "底部有空间，消耗：" + (-dy));
+//                Log.d(TAG, "底部有空间，消耗：" + (-dy));
                 mTotalConsume += dy;
                 offsetTargetTopAndBottom(dy);
                 consumed[1] = -dy;
             } else if (interceptPullDown(target)) {
-                Log.d(TAG, "顶部下滑 :");
-                mTotalConsume += dy;
-                offsetTargetTopAndBottom(dy);
-                consumed[1] = -dy;
+//                Log.d(TAG, "顶部下滑 :");
+                slidingToTargetTop();
+                if (Math.abs(mTotalConsume) <= 300) {
+                    mTotalConsume += dy;
+                    offsetTargetTopAndBottom(dy);
+                    consumed[1] = -dy;
+                } else {
+//                    Log.d(TAG, "顶部下拉最大边界");
+                    consumed[1] = 0;
+                }
             }
         } else if (dy < 0) {
             //Log.d(TAG, "上滑");
@@ -112,56 +110,33 @@ public class SlidingNestedLayout extends FrameLayout implements NestedScrollingP
                     mTotalConsume = 0;
                 }
             } else if (interceptPullUp(target)) {
-                //Log.d(TAG, "顶部没有OFFSET空间,切滑动到底部");
-                mTotalConsume += dy;
-                offsetTargetTopAndBottom(dy);
-                consumed[1] = -dy;
-            }
-
-           /* if (mTotalConsume >= 0 ) {
-                int preConsume = mTotalConsume + dy;
-                if (preConsume >= 0) {
+                //Log.d(TAG, "上滑 顶部没有OFFSET空间,切滑动到底部");
+                slidingToTargetBottom();
+                if (Math.abs(mTotalConsume) <= 300) {
+                    mTotalConsume += dy;
                     offsetTargetTopAndBottom(dy);
-                    mTotalConsume = preConsume;
                     consumed[1] = -dy;
                 } else {
-                    offsetTargetTopAndBottom(mTotalConsume);
-                    consumed[1] = mTotalConsume;
-                    mTotalConsume = preConsume;
+//                    Log.d(TAG,"底部上拉最大边界");
+                    consumed[1] = 0;
                 }
-            }else {
-
-            }*/
-
-        }
-        Log.d(TAG, "caculate : mTotalConsume :" + mTotalConsume + ", consumed[1]:" + consumed[1]);
-
-        // 如果child不能滑动,parent消耗
-        /*if (mNestedScroll) {
-            int offset = (int) (-dy * DRAG_RATE);
-            mTotalConsume += offset;
-            mTarget.offsetTopAndBottom(offset);
-            consumed[1] = dy;
-        }
-        if (mTotalConsume != 0) {
-            int offset = (int) (-dy * DRAG_RATE);
-            int tmp = mTotalConsume;
-            mTotalConsume += offset;
-            if ((tmp - mTotalConsume) > (tmp + mTotalConsume)) {
-                mTarget.offsetTopAndBottom(tmp);
-                consumed[1] = -(tmp + mTotalConsume);
-                mTotalConsume = 0;
-            } else {
-                mTarget.offsetTopAndBottom(offset);
-                consumed[1] = dy;
             }
-        }*/
+
+        }
+//        Log.d(TAG, "caculate : mTotalConsume :" + mTotalConsume + ", consumed[1]:" + consumed[1]);
+    }
+
+    protected void slidingToTargetBottom() {
+
+    }
+
+    protected void slidingToTargetTop() {
+
     }
 
     private void offsetTargetTopAndBottom(int dy) {
         ensureTargetView();
         ViewCompat.offsetTopAndBottom(mTarget, dy);
-        Log.d(TAG, "offsetTargetTopAndBottom :" + dy);
     }
 
     private void animToStart() {
@@ -176,80 +151,6 @@ public class SlidingNestedLayout extends FrameLayout implements NestedScrollingP
         }
     }
 
-    int mTotalConsume;
-    View mTarget;
-    int mScrollState = 0;
-    int mLastY;
-    boolean mNestedScroll;
-
-    /*@Override
-    public boolean onInterceptTouchEvent(MotionEvent ev) {
-        ensureTargetView();
-        int y = (int) ev.getY();
-        switch (ev.getAction()) {
-            case MotionEvent.ACTION_DOWN:
-                mInitialDownY = y;
-                mLastY = y;
-                break;
-            case MotionEvent.ACTION_MOVE:
-                View child = mTarget;
-                if (y - mInitialDownY > 0) {
-                    //相对起始位置下滑
-                    Log.d(TAG, "下滑~~~~~~~");
-                    if (interceptPullDown(child)) {
-                        Log.d(TAG, "NNNNNNNNNNNNN child 不能下滑");
-                        mNestedScroll = true;
-                    } else {
-                        Log.d(TAG, "YYYYYYYYYYYYY child 能下滑");
-                        mNestedScroll = false;
-                    }
-
-                } else if (y - mInitialDownY < 0) {
-                    Log.d(TAG, "上滑~~~~~~~");
-                    if (interceptPullUp(child)) {
-                        mNestedScroll = true;
-                    } else {
-                        mNestedScroll = false;
-                    }
-                }
-                break;
-            case MotionEvent.ACTION_CANCEL:
-            case MotionEvent.ACTION_UP:
-                Log.d(TAG, "event :" + ev);
-                onTouchEventUp(ev);
-                mScrollState = 0;
-                mNestedScroll = false;
-                break;
-
-        }
-        return super.onInterceptTouchEvent(ev);
-    }
-
-    protected void onTouchEventUp(MotionEvent event) {
-        Log.d(TAG, "onTouchEventUp");
-        smoothScrollTo(0, 0);
-    }*/
-
-    @Override
-    public boolean onTouchEvent(MotionEvent event) {
-        return super.onTouchEvent(event);
-    }
-
-    public boolean canChildScrollUp(View target) {
-
-        if (android.os.Build.VERSION.SDK_INT < 14) {
-            if (target instanceof AbsListView) {
-                final AbsListView absListView = (AbsListView) target;
-                return absListView.getChildCount() > 0
-                        && (absListView.getFirstVisiblePosition() > 0 || absListView.getChildAt(0)
-                        .getTop() < absListView.getPaddingTop());
-            } else {
-                return ViewCompat.canScrollVertically(target, -1) || target.getScrollY() > 0;
-            }
-        } else {
-            return ViewCompat.canScrollVertically(target, -1);
-        }
-    }
 
     private boolean interceptPullDown(View child) {
         boolean intercept = true;
@@ -343,7 +244,7 @@ public class SlidingNestedLayout extends FrameLayout implements NestedScrollingP
 
     @Override
     public void onNestedScroll(View target, int dxConsumed, int dyConsumed, int dxUnconsumed, int dyUnconsumed) {
-        //Log.d(TAG, "onNestedScroll() called with: , dxConsumed = [" + dxConsumed + "], dyConsumed = [" + dyConsumed + "], dxUnconsumed = [" + dxUnconsumed + "], dyUnconsumed = [" + dyUnconsumed + "]");
+        Log.d(TAG, "onNestedScroll() called with: , dxConsumed = [" + dxConsumed + "], dyConsumed = [" + dyConsumed + "], dxUnconsumed = [" + dxUnconsumed + "], dyUnconsumed = [" + dyUnconsumed + "]");
     }
 
     @Override
@@ -367,7 +268,6 @@ public class SlidingNestedLayout extends FrameLayout implements NestedScrollingP
         mNestedScrollingParentHelper.onStopNestedScroll(child);
         animToStart();
         mTotalConsume = 0;
-//        smoothScrollTo(0, 0);
     }
 
     @Override
@@ -391,19 +291,6 @@ public class SlidingNestedLayout extends FrameLayout implements NestedScrollingP
         }
     }
 
-    private void smoothScrollTo(int fx, int fy) {
-        int dx = fx - mScroller.getFinalX();
-        int dy = fy - mScroller.getFinalY();
-        mScroller.startScroll(mScroller.getFinalX(), mScroller.getFinalY(), dx, dy);
-        invalidate();
-    }
-
-    private void smoothScrollBy(int dx, int dy) {
-        int finalY = mScroller.getFinalY();
-        mScroller.startScroll(mScroller.getFinalX(), finalY, dx, dy);
-        invalidate();
-    }
-
     @Override
     protected void onFinishInflate() {
         super.onFinishInflate();
@@ -423,12 +310,5 @@ public class SlidingNestedLayout extends FrameLayout implements NestedScrollingP
         scrollTo(0, scrollY);
     }
 
-    @Override
-    public void computeScroll() {
-        if (mScroller.computeScrollOffset()) {
-            scrollTo(mScroller.getCurrX(), mScroller.getCurrY());
-            postInvalidate();
-        }
-        super.computeScroll();
-    }
+
 }
