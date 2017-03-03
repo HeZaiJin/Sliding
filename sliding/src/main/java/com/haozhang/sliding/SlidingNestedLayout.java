@@ -20,7 +20,7 @@ import android.widget.Scroller;
 public class SlidingNestedLayout extends FrameLayout implements NestedScrollingParent {
     private static final String TAG = "SlidingNestedLayout";
 
-    private static final float DRAG_RATE = .5f;
+    private static final float DRAG_RATE = .2f;
     protected Scroller mScroller;
     private NestedScrollingParentHelper mNestedScrollingParentHelper;
 
@@ -80,9 +80,64 @@ public class SlidingNestedLayout extends FrameLayout implements NestedScrollingP
      */
     @Override
     public void onNestedPreScroll(View target, int dx, int dy, int[] consumed) {
+        Log.d(TAG, "onNestedPreScroll() called with: dx = [" + dx + "], dy = [" + dy);
+        dy = -dy;
+        if (dy > 0) {
+            if (mTotalConsume < 0) {
+                Log.d(TAG, "底部有空间，消耗：" + (-dy));
+                mTotalConsume += dy;
+                offsetTargetTopAndBottom(dy);
+                consumed[1] = -dy;
+            } else if (interceptPullDown(target)) {
+                Log.d(TAG, "顶部下滑 :");
+                mTotalConsume += dy;
+                offsetTargetTopAndBottom(dy);
+                consumed[1] = -dy;
+            }
+        } else if (dy < 0) {
+            //Log.d(TAG, "上滑");
+            //Log.d(TAG, "current total consume :" + mTotalConsume);
+            if (mTotalConsume > 0) {
+                //Log.d(TAG, "顶部有Offset空间 :" + mTotalConsume + ",消耗掉");
+                int preConsume = mTotalConsume + dy;
+                if (preConsume >= 0) {
+                    offsetTargetTopAndBottom(dy);
+                    mTotalConsume = preConsume;
+                    consumed[1] = -dy;
+                    //Log.d(TAG, "空间还很多,继续消耗 :" + (-dy));
+                } else {
+                    //Log.d(TAG, "空间不太够了,只能消耗一部分:" + mTotalConsume);
+                    offsetTargetTopAndBottom(-mTotalConsume);
+                    consumed[1] = mTotalConsume;
+                    mTotalConsume = 0;
+                }
+            } else if (interceptPullUp(target)) {
+                //Log.d(TAG, "顶部没有OFFSET空间,切滑动到底部");
+                mTotalConsume += dy;
+                offsetTargetTopAndBottom(dy);
+                consumed[1] = -dy;
+            }
+
+           /* if (mTotalConsume >= 0 ) {
+                int preConsume = mTotalConsume + dy;
+                if (preConsume >= 0) {
+                    offsetTargetTopAndBottom(dy);
+                    mTotalConsume = preConsume;
+                    consumed[1] = -dy;
+                } else {
+                    offsetTargetTopAndBottom(mTotalConsume);
+                    consumed[1] = mTotalConsume;
+                    mTotalConsume = preConsume;
+                }
+            }else {
+
+            }*/
+
+        }
+        Log.d(TAG, "caculate : mTotalConsume :" + mTotalConsume + ", consumed[1]:" + consumed[1]);
+
         // 如果child不能滑动,parent消耗
-        Log.d(TAG, "onNestedPreScroll() called with:, dx = [" + dx + "], dy = [" + dy + "], mNestedScroll :" + mNestedScroll + ",mTotalConsume :" + mTotalConsume);
-        if (mNestedScroll) {
+        /*if (mNestedScroll) {
             int offset = (int) (-dy * DRAG_RATE);
             mTotalConsume += offset;
             mTarget.offsetTopAndBottom(offset);
@@ -100,8 +155,20 @@ public class SlidingNestedLayout extends FrameLayout implements NestedScrollingP
                 mTarget.offsetTopAndBottom(offset);
                 consumed[1] = dy;
             }
-        }
+        }*/
     }
+
+    private void offsetTargetTopAndBottom(int dy) {
+        ensureTargetView();
+        ViewCompat.offsetTopAndBottom(mTarget, dy);
+        Log.d(TAG, "offsetTargetTopAndBottom :" + dy);
+    }
+
+    private void animToStart() {
+        offsetTargetTopAndBottom(-mTotalConsume);
+        invalidate();
+    }
+
 
     public void ensureTargetView() {
         if (null == mTarget) {
@@ -115,7 +182,7 @@ public class SlidingNestedLayout extends FrameLayout implements NestedScrollingP
     int mLastY;
     boolean mNestedScroll;
 
-    @Override
+    /*@Override
     public boolean onInterceptTouchEvent(MotionEvent ev) {
         ensureTargetView();
         int y = (int) ev.getY();
@@ -161,7 +228,7 @@ public class SlidingNestedLayout extends FrameLayout implements NestedScrollingP
     protected void onTouchEventUp(MotionEvent event) {
         Log.d(TAG, "onTouchEventUp");
         smoothScrollTo(0, 0);
-    }
+    }*/
 
     @Override
     public boolean onTouchEvent(MotionEvent event) {
@@ -296,7 +363,10 @@ public class SlidingNestedLayout extends FrameLayout implements NestedScrollingP
 
     @Override
     public void onStopNestedScroll(View child) {
+        Log.d(TAG, "onStopNestedScroll() called with: child = [" + child + "]");
         mNestedScrollingParentHelper.onStopNestedScroll(child);
+        animToStart();
+        mTotalConsume = 0;
 //        smoothScrollTo(0, 0);
     }
 
