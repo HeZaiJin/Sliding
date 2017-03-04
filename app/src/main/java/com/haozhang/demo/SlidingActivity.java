@@ -33,7 +33,6 @@ public class SlidingActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-
         setContentView(R.layout.activity_sliding);
         mSlidingLayout = (SlidingLayout) findViewById(R.id.content_sliding);
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
