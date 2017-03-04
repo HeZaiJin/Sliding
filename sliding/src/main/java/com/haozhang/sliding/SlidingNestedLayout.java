@@ -1,6 +1,7 @@
 package com.haozhang.sliding;
 
 import android.content.Context;
+import android.content.res.Resources;
 import android.support.v4.view.NestedScrollingParent;
 import android.support.v4.view.NestedScrollingParentHelper;
 import android.support.v4.view.ViewCompat;
@@ -8,6 +9,9 @@ import android.support.v7.widget.RecyclerView;
 import android.util.AttributeSet;
 import android.util.Log;
 import android.view.View;
+import android.view.animation.Animation;
+import android.view.animation.DecelerateInterpolator;
+import android.view.animation.Transformation;
 import android.widget.AdapterView;
 import android.widget.FrameLayout;
 import android.widget.ScrollView;
@@ -15,6 +19,9 @@ import android.widget.ScrollView;
 public class SlidingNestedLayout extends FrameLayout implements NestedScrollingParent {
     private static final String TAG = "SlidingNestedLayout";
 
+    private static final int ANIMATE_TO_START_DURATION = 200;
+    private final DecelerateInterpolator mDecelerateInterpolator = new DecelerateInterpolator(2f);
+    private int mSlidingMaxDistance;
     private NestedScrollingParentHelper mNestedScrollingParentHelper;
     int mTotalConsume;
     View mTarget;
@@ -35,6 +42,8 @@ public class SlidingNestedLayout extends FrameLayout implements NestedScrollingP
     }
 
     private void init(Context context) {
+        Resources resources = context.getResources();
+        mSlidingMaxDistance = resources.getDimensionPixelSize(R.dimen.sliding_max_distance);
         mNestedScrollingParentHelper = new NestedScrollingParentHelper(this);
     }
 
@@ -83,7 +92,7 @@ public class SlidingNestedLayout extends FrameLayout implements NestedScrollingP
             } else if (interceptPullDown(target)) {
 //                Log.d(TAG, "顶部下滑 :");
                 slidingToTargetTop();
-                if (Math.abs(mTotalConsume) <= 300) {
+                if (Math.abs(mTotalConsume) <= mSlidingMaxDistance) {
                     mTotalConsume += dy;
                     offsetTargetTopAndBottom(dy);
                     consumed[1] = -dy;
@@ -112,7 +121,7 @@ public class SlidingNestedLayout extends FrameLayout implements NestedScrollingP
             } else if (interceptPullUp(target)) {
                 //Log.d(TAG, "上滑 顶部没有OFFSET空间,切滑动到底部");
                 slidingToTargetBottom();
-                if (Math.abs(mTotalConsume) <= 300) {
+                if (Math.abs(mTotalConsume) <= mSlidingMaxDistance) {
                     mTotalConsume += dy;
                     offsetTargetTopAndBottom(dy);
                     consumed[1] = -dy;
@@ -140,10 +149,44 @@ public class SlidingNestedLayout extends FrameLayout implements NestedScrollingP
     }
 
     private void animToStart() {
-        offsetTargetTopAndBottom(-mTotalConsume);
-        invalidate();
+        mAnimateToStartPosition.reset();
+        mAnimateToStartPosition.setDuration(ANIMATE_TO_START_DURATION);
+        mAnimateToStartPosition.setInterpolator(mDecelerateInterpolator);
+        mAnimateToStartPosition.setAnimationListener(new Animation.AnimationListener() {
+            @Override
+            public void onAnimationStart(Animation animation) {
+
+            }
+
+            @Override
+            public void onAnimationEnd(Animation animation) {
+                mTotalConsume = 0;
+            }
+
+            @Override
+            public void onAnimationRepeat(Animation animation) {
+
+            }
+        });
+        this.clearAnimation();
+        this.startAnimation(mAnimateToStartPosition);
     }
 
+
+    void moveToStart(float interpolatedTime) {
+        int targetTop = 0;
+        targetTop = (mTotalConsume + (int) ((-mTotalConsume) * interpolatedTime));
+        int offset = targetTop - mTarget.getTop();
+        offsetTargetTopAndBottom(offset);
+    }
+
+
+    private final Animation mAnimateToStartPosition = new Animation() {
+        @Override
+        public void applyTransformation(float interpolatedTime, Transformation t) {
+            moveToStart(interpolatedTime);
+        }
+    };
 
     public void ensureTargetView() {
         if (null == mTarget) {
@@ -267,7 +310,6 @@ public class SlidingNestedLayout extends FrameLayout implements NestedScrollingP
         Log.d(TAG, "onStopNestedScroll() called with: child = [" + child + "]");
         mNestedScrollingParentHelper.onStopNestedScroll(child);
         animToStart();
-        mTotalConsume = 0;
     }
 
     @Override
