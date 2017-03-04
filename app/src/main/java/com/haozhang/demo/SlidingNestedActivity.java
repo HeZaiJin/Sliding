@@ -11,6 +11,8 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ArrayAdapter;
+import android.widget.ListView;
 import android.widget.TextView;
 
 import com.haozhang.sliding.SlidingNestedLayout;
@@ -19,8 +21,8 @@ import java.util.Arrays;
 import java.util.List;
 
 public class SlidingNestedActivity extends AppCompatActivity {
-    int[] mChildsRes = {R.layout.layout_nested_scrollview, R.layout.layout_recycler};
-    View[] mChilds = new View[2];
+    int[] mChildsRes = {R.layout.layout_nested_scrollview, R.layout.layout_recycler,R.layout.layout_listview,R.layout.layout_normal};
+    View[] mChilds = new View[4];
     SlidingNestedLayout mSlidingLayout;
     View mChild;
     List<String> mListData;
@@ -45,9 +47,12 @@ public class SlidingNestedActivity extends AppCompatActivity {
     }
 
     public void initChilds() {
-        for (int i = 0; i < 2; i++) {
+        for (int i = 0; i < 4; i++) {
             mChilds[i] = getLayoutInflater().inflate(mChildsRes[i], null);
         }
+        ArrayAdapter<String> adapter = new ArrayAdapter<String>(this, android.R.layout.simple_list_item_1, android.R.id.text1, mListData);
+        ListView lv = (ListView) mChilds[2];
+        lv.setAdapter(adapter);
 
         String[] stringArray = getResources().getStringArray(R.array.list_value);
         mListData = Arrays.asList(stringArray);
@@ -107,11 +112,17 @@ public class SlidingNestedActivity extends AppCompatActivity {
     public boolean onOptionsItemSelected(MenuItem item) {
         int type = -1;
         switch (item.getItemId()) {
-            case R.id.sliding_scrollView:
+            case R.id.sliding_nested_scrollView:
                 type = 0;
                 break;
-            case R.id.sliding_recyclerView:
+            case R.id.sliding_nested_recyclerView:
                 type = 1;
+                break;
+            case R.id.sliding_nested_listView:
+                type = 2;
+                break;
+            case R.id.sliding_nested_normal:
+                type = 3;
                 break;
         }
         if (type >= 0) {
