@@ -27,4 +27,14 @@ public class SlidingRefreshLayout extends SlidingNestedLayout {
     protected int getTargetViewIndex() {
         return 2;
     }
+
+    @Override
+    protected void onSlidingOffsetTopAndBottom(int offset) {
+        
+    }
+
+    @Override
+    protected void onSlidingProgress(float progerss) {
+
+    }
 }

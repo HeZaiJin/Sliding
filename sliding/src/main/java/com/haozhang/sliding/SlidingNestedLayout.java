@@ -166,7 +166,9 @@ public class SlidingNestedLayout extends FrameLayout implements NestedScrollingP
             mSlidingProgress = tmp;
             onSlidingProgress(tmp);
         }
-        onSlidingOffsetTopAndBottom(dy);
+        if (dy != 0) {
+            onSlidingOffsetTopAndBottom(dy);
+        }
     }
 
     private void animToStart() {
