@@ -21,4 +21,10 @@ public class SlidingRefreshLayout extends SlidingNestedLayout {
     public SlidingRefreshLayout(Context context, AttributeSet attrs, int defStyleAttr) {
         super(context, attrs, defStyleAttr);
     }
+
+
+    @Override
+    protected int getTargetViewIndex() {
+        return 2;
+    }
 }
