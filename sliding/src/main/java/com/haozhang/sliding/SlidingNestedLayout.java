@@ -17,13 +17,14 @@ import android.widget.FrameLayout;
 public class SlidingNestedLayout extends FrameLayout implements NestedScrollingParent {
     private static final String TAG = "SlidingNestedLayout";
 
-    private static final int ANIMATE_TO_START_DURATION = 200;
-    private final DecelerateInterpolator mDecelerateInterpolator = new DecelerateInterpolator(1.35f);
+    protected static final int ANIMATE_TO_START_DURATION = 200;
+    protected final DecelerateInterpolator mDecelerateInterpolator = new DecelerateInterpolator(1.35f);
     private int mSlidingMaxDistance;
     private NestedScrollingParentHelper mNestedScrollingParentHelper;
     int mTotalConsume;
     View mTarget;
     float mSlidingProgress = 0f;
+    int mFrom;
 
     public SlidingNestedLayout(Context context) {
         super(context);
@@ -68,6 +69,11 @@ public class SlidingNestedLayout extends FrameLayout implements NestedScrollingP
         mNestedScrollingParentHelper.onNestedScrollAccepted(child, target, axes);
     }
 
+    protected boolean checkIsWorking() {
+        return false;
+    }
+
+
     /**
      * 先于target滑动
      *
@@ -80,7 +86,10 @@ public class SlidingNestedLayout extends FrameLayout implements NestedScrollingP
     public void onNestedPreScroll(View target, int dx, int dy, int[] consumed) {
 //        Log.d(TAG, "onNestedPreScroll() , dx = [" + dx + "], dy = [" + dy + "]");
         dy = -dy;
-
+        if (checkIsWorking()) {
+            Log.d(TAG, "current is working ");
+            return;
+        }
         if (dy > 0) {
             if (mTotalConsume < 0) {
                 int preConsume = mTotalConsume + dy;
@@ -192,19 +201,38 @@ public class SlidingNestedLayout extends FrameLayout implements NestedScrollingP
         });
         this.clearAnimation();
         mFrom = mTotalConsume;
-        this.startAnimation(mAnimateToStartPosition);
+        Log.d(TAG, "onMoveToStartBegin :" + mFrom);
+        if (mFrom > 0) {
+            onMoveToStartBegin(mFrom);
+            this.startAnimation(mAnimateToStartPosition);
+        }
     }
 
-    int mFrom;
+    protected void onMoveToStartBegin(int from) {
+
+    }
+
 
     void moveToStart(float interpolatedTime) {
+        Log.d(TAG, "moveToStart() called with: interpolatedTime = [" + interpolatedTime + "]");
+        if (mFrom == 0) {
+            return;
+        }
         ensureTargetView();
         int targetTop = 0;
-        targetTop = (mFrom + (int) ((-mFrom) * interpolatedTime));
+        Log.d(TAG, "mFrom :" + mFrom + ", head :" + getHeaderSpace());
+        if (mFrom >= getHeaderSpace()) {
+            targetTop = (mFrom + (int) ((-mFrom + getHeaderSpace()) * interpolatedTime));
+        } else {
+            targetTop = (mFrom + (int) ((-mFrom) * interpolatedTime));
+        }
         int offset = targetTop - mTarget.getTop();
         mTotalConsume += offset;
-        Log.d(TAG,"moveToStart :"+mTotalConsume);
         offsetTargetTopAndBottom(offset);
+    }
+
+    protected int getHeaderSpace() {
+        return 0;
     }
 
 
@@ -250,11 +278,11 @@ public class SlidingNestedLayout extends FrameLayout implements NestedScrollingP
     }
 
     protected void onSlidingProgress(float progerss) {
-        Log.d(TAG, "onSlidingProgress() called with: progerss = [" + progerss + "]");
+//        Log.d(TAG, "onSlidingProgress() called with: progerss = [" + progerss + "]");
     }
 
-    protected void onSlidingOffsetTopAndBottom(int offset){
-        Log.d(TAG, "onSlidingOffsetTopAndBottom() called with: offset = [" + offset + "]");
+    protected void onSlidingOffsetTopAndBottom(int offset) {
+//        Log.d(TAG, "onSlidingOffsetTopAndBottom() called with: offset = [" + offset + "]");
     }
 
     @Override
@@ -275,7 +303,9 @@ public class SlidingNestedLayout extends FrameLayout implements NestedScrollingP
     @Override
     public void onStopNestedScroll(View child) {
         mNestedScrollingParentHelper.onStopNestedScroll(child);
-        animToStart();
+        if (!checkIsWorking()) {
+            animToStart();
+        }
     }
 
     @Override
